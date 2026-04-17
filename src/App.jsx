@@ -1,8 +1,17 @@
 import React, { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
-import { BarChart3, Settings2, Info, Upload, Download, AlertCircle } from 'lucide-react';
+import { BarChart3, Settings2, Eye, EyeOff, Upload, Download, AlertCircle } from 'lucide-react';
 
-const STAGES = ['Crawl', 'Walk', 'Run', 'Fly'];
+const STAGES = ['Foundation', 'Crawl', 'Walk', 'Run', 'Fly'];
+
+const ROW_COLORS = [
+  { row: 'bg-slate-50',   label: 'bg-slate-100'   },
+  { row: 'bg-emerald-50', label: 'bg-emerald-100' },
+  { row: 'bg-blue-50',    label: 'bg-blue-100'    },
+  { row: 'bg-amber-50',   label: 'bg-amber-100'   },
+  { row: 'bg-purple-50',  label: 'bg-purple-100'  },
+  { row: 'bg-rose-50',    label: 'bg-rose-100'    },
+];
 
 const INITIAL_DATA = [
   {
@@ -74,7 +83,7 @@ function parseRows(rows) {
     if (!app || !name) return; // skip blank rows silently
 
     if (!STAGES.includes(stage)) {
-      errors.push(`Row ${lineNum}: Stage "${stage}" is not one of Crawl, Walk, Run, Fly`);
+      errors.push(`Row ${lineNum}: Stage "${stage}" is not one of Foundation, Crawl, Walk, Run, Fly`);
       return;
     }
 
@@ -97,6 +106,7 @@ function parseRows(rows) {
 
 function downloadTemplate() {
   const templateRows = [
+    { Application: 'Policy & Compliance', Feature: 'Policy Lifecycle Management', Stage: 'Foundation', Adoption: 100, Active: 'yes' },
     { Application: 'Policy & Compliance', Feature: 'Policy Lifecycle Management', Stage: 'Crawl', Adoption: 90, Active: 'yes' },
     { Application: 'Policy & Compliance', Feature: 'Automated Control Testing', Stage: 'Walk', Adoption: 45, Active: 'yes' },
     { Application: 'Risk Management', Feature: 'Risk Register Setup', Stage: 'Crawl', Adoption: 85, Active: 'yes' },
@@ -113,7 +123,23 @@ const App = () => {
   const [editingFeature, setEditingFeature] = useState(null);
   const [uploadError, setUploadError] = useState(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [hiddenStages, setHiddenStages] = useState(new Set());
   const fileInputRef = useRef(null);
+
+  const toggleStageVisibility = (stage) => {
+    setHiddenStages(prev => {
+      const next = new Set(prev);
+      if (next.has(stage)) next.delete(stage); else next.add(stage);
+      return next;
+    });
+  };
+
+  const visibleStages = STAGES.filter(s => !hiddenStages.has(s));
+
+  const stageAvg = (stage) => {
+    const active = data.flatMap(a => a.features).filter(f => f.stage === stage && f.active);
+    return active.length ? Math.round(active.reduce((s, f) => s + f.adoption, 0) / active.length) : 0;
+  };
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -172,11 +198,23 @@ const App = () => {
 
   const getStageColor = (stage) => {
     switch (stage) {
+      case 'Foundation': return 'bg-slate-100 text-slate-800 border-slate-200';
       case 'Crawl': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
       case 'Walk': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'Run': return 'bg-amber-100 text-amber-800 border-amber-200';
       case 'Fly': return 'bg-purple-100 text-purple-800 border-purple-200';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStageAccent = (stage) => {
+    switch (stage) {
+      case 'Foundation': return 'border-l-slate-400';
+      case 'Crawl': return 'border-l-emerald-500';
+      case 'Walk': return 'border-l-blue-500';
+      case 'Run': return 'border-l-amber-500';
+      case 'Fly': return 'border-l-purple-500';
+      default: return 'border-l-gray-300';
     }
   };
 
@@ -189,73 +227,45 @@ const App = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans text-gray-900">
-      <div className="max-w-7xl mx-auto">
+      <div className="w-full">
         <header className="mb-8">
-          <div className="flex items-center justify-between flex-wrap gap-4">
+          {/* Title + Legend */}
+          <div className="flex items-start justify-between flex-wrap gap-4 mb-4">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-gray-900">ServiceNow IRM Implementation Roadmap</h1>
-              <p className="mt-2 text-gray-600">Adoption &amp; Maturity View across Organizational Capabilities</p>
+              <h1 className="text-3xl font-bold tracking-tight text-gray-900">ServiceNow IRM Product Capabilities</h1>
+              <p className="mt-2 text-gray-600">GRC Adoption &amp; Maturity View</p>
             </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="hidden md:flex gap-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="w-3 h-3 rounded-full bg-emerald-500"></span> 80%+ Adoption
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="w-3 h-3 rounded-full bg-amber-500"></span> In Progress
-                </div>
+            <div className="hidden md:flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm pt-1">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-emerald-500 shrink-0"></span>
+                <span><span className="font-semibold">80–100%</span> — Mature</span>
               </div>
-              <button
-                onClick={downloadTemplate}
-                className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium transition-colors"
-              >
-                <Download size={14} />
-                Template
-              </button>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
-              >
-                <Upload size={14} />
-                Upload Spreadsheet
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                className="hidden"
-                onChange={handleFileUpload}
-              />
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-blue-500 shrink-0"></span>
+                <span><span className="font-semibold">50–79%</span> — Well Underway</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-amber-500 shrink-0"></span>
+                <span><span className="font-semibold">1–49%</span> — Enabled/Early Adoption</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-gray-200 border border-gray-300 shrink-0"></span>
+                <span className="font-semibold">0%</span>
+              </div>
             </div>
           </div>
 
-          {/* Upload feedback */}
-          {uploadSuccess && (
-            <div className="mt-4 flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2">
-              Spreadsheet loaded successfully.
-              <button onClick={() => setUploadSuccess(false)} className="ml-auto text-emerald-500 hover:text-emerald-700">&#x2715;</button>
-            </div>
-          )}
-          {uploadError && (
-            <div className="mt-4 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-              <div className="flex items-start gap-2 text-sm text-red-700">
-                <AlertCircle size={16} className="mt-0.5 shrink-0" />
-                <pre className="whitespace-pre-wrap font-sans">{uploadError}</pre>
-                <button onClick={() => setUploadError(null)} className="ml-auto text-red-400 hover:text-red-600">&#x2715;</button>
-              </div>
-            </div>
-          )}
         </header>
 
         {/* Matrix Grid */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[800px]">
+            <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="p-4 w-64 font-semibold text-gray-500 uppercase text-xs tracking-wider border-r border-gray-200">Application</th>
-                  {STAGES.map(stage => (
-                    <th key={stage} className="p-4 text-center font-bold text-sm border-r border-gray-200 last:border-r-0">
+                  <th className="p-4 w-px whitespace-nowrap font-semibold text-gray-500 uppercase text-xs tracking-wider border-r border-gray-200">Application</th>
+                  {visibleStages.map(stage => (
+                    <th key={stage} style={{ width: `${100 / visibleStages.length}%` }} className="p-4 text-center font-bold text-sm border-r border-gray-200 last:border-r-0">
                       <div className={`inline-block px-3 py-1 rounded-full text-xs mb-2 border ${getStageColor(stage)}`}>
                         {stage}
                       </div>
@@ -264,12 +274,14 @@ const App = () => {
                 </tr>
               </thead>
               <tbody>
-                {data.map((row, appIdx) => (
-                  <tr key={row.app} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="p-4 font-medium text-gray-800 border-r border-gray-200 bg-gray-50">
+                {data.map((row, appIdx) => {
+                  const rc = ROW_COLORS[appIdx % ROW_COLORS.length];
+                  return (
+                  <tr key={row.app} className={`border-b border-gray-100 transition-colors ${rc.row}`}>
+                    <td className={`p-4 font-medium text-gray-800 border-r border-gray-200 whitespace-nowrap ${rc.label}`}>
                       {row.app}
                     </td>
-                    {STAGES.map(stage => (
+                    {visibleStages.map(stage => (
                       <td key={stage} className="p-4 align-top border-r border-gray-200 last:border-r-0">
                         <div className="flex flex-col gap-3">
                           {row.features
@@ -277,10 +289,10 @@ const App = () => {
                             .map(feature => (
                               <div
                                 key={feature.id}
-                                className="group relative bg-white p-3 rounded-lg border border-gray-200 shadow-sm hover:border-blue-300 transition-all cursor-default"
+                                className={`group relative bg-white p-3 rounded-lg border border-gray-200 border-l-4 ${getStageAccent(stage)} shadow-md hover:shadow-lg transition-all cursor-default`}
                               >
                                 <div className="flex justify-between items-start mb-2">
-                                  <span className="text-xs font-semibold text-gray-700 leading-tight pr-4">
+                                  <span className="text-sm font-semibold text-gray-700 leading-tight pr-4">
                                     {feature.name}
                                   </span>
                                   <button
@@ -291,13 +303,13 @@ const App = () => {
                                   </button>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                  <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                                     <div
                                       className={`h-full transition-all duration-500 ${getAdoptionColor(feature.adoption)}`}
                                       style={{ width: `${feature.adoption}%` }}
                                     ></div>
                                   </div>
-                                  <span className="text-[10px] font-bold text-gray-500 tabular-nums">
+                                  <span className="text-xs font-bold text-gray-500 tabular-nums">
                                     {feature.adoption}%
                                   </span>
                                 </div>
@@ -307,47 +319,92 @@ const App = () => {
                       </td>
                     ))}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* Legend / Info */}
-        <div className="mt-8 grid md:grid-cols-3 gap-6">
+        {/* Stats */}
+        <div className="mt-8">
           <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
             <h3 className="flex items-center gap-2 font-bold mb-3 text-gray-800">
               <BarChart3 size={18} className="text-blue-500" />
-              Quick Stats
+              Avg. Adoption by Stage
             </h3>
-            <div className="space-y-2 text-sm text-gray-600">
-              <div className="flex justify-between">
-                <span>Active Features:</span>
-                <span className="font-bold text-gray-900">
-                  {data.reduce((acc, app) => acc + app.features.filter(f => f.active).length, 0)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Avg. Crawl Adoption:</span>
-                <span className="font-bold text-emerald-600">
-                  {Math.round(
-                    data.flatMap(a => a.features).filter(f => f.stage === 'Crawl' && f.active).reduce((s, f) => s + f.adoption, 0) /
-                    (data.flatMap(a => a.features).filter(f => f.stage === 'Crawl' && f.active).length || 1)
-                  )}%
-                </span>
-              </div>
+            <div className="space-y-2">
+              {STAGES.map(stage => {
+                const avg = stageAvg(stage);
+                const hidden = hiddenStages.has(stage);
+                return (
+                  <div key={stage} className="flex items-center gap-3">
+                    <button
+                      onClick={() => toggleStageVisibility(stage)}
+                      className="text-gray-400 hover:text-blue-600 transition-colors shrink-0"
+                      title={hidden ? 'Show column' : 'Hide column'}
+                    >
+                      {hidden ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs border w-24 text-center shrink-0 ${getStageColor(stage)}`}>
+                      {stage}
+                    </span>
+                    <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-500 ${getAdoptionColor(avg)}`}
+                        style={{ width: `${avg}%` }}
+                      />
+                    </div>
+                    <span className={`text-xs font-bold tabular-nums w-8 text-right ${hidden ? 'text-gray-300' : 'text-gray-600'}`}>
+                      {avg}%
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
+        </div>
 
-          <div className="md:col-span-2 bg-blue-50 p-5 rounded-xl border border-blue-100">
-            <h3 className="flex items-center gap-2 font-bold mb-2 text-blue-800 text-sm">
-              <Info size={16} />
-              Spreadsheet Format
-            </h3>
-            <p className="text-sm text-blue-700 leading-relaxed">
-              Upload an <strong>.xlsx</strong> or <strong>.csv</strong> file with columns: <code className="bg-blue-100 px-1 rounded">Application</code>, <code className="bg-blue-100 px-1 rounded">Feature</code>, <code className="bg-blue-100 px-1 rounded">Stage</code> (Crawl / Walk / Run / Fly), <code className="bg-blue-100 px-1 rounded">Adoption</code> (0–100), <code className="bg-blue-100 px-1 rounded">Active</code> (yes / no). Download the template to get started.
-            </p>
+        {/* Data controls */}
+        <div className="mt-8 flex flex-col gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              onClick={downloadTemplate}
+              className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium transition-colors"
+            >
+              <Download size={14} />
+              Template
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
+            >
+              <Upload size={14} />
+              Upload Spreadsheet
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="hidden"
+              onChange={handleFileUpload}
+            />
           </div>
+          {uploadSuccess && (
+            <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2">
+              Spreadsheet loaded successfully.
+              <button onClick={() => setUploadSuccess(false)} className="ml-auto text-emerald-500 hover:text-emerald-700">&#x2715;</button>
+            </div>
+          )}
+          {uploadError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+              <div className="flex items-start gap-2 text-sm text-red-700">
+                <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                <pre className="whitespace-pre-wrap font-sans">{uploadError}</pre>
+                <button onClick={() => setUploadError(null)} className="ml-auto text-red-400 hover:text-red-600">&#x2715;</button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Edit Modal */}

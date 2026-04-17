@@ -2,7 +2,7 @@
 
 ## What this is
 
-A React single-page app that visualises a ServiceNow IRM implementation roadmap as a Crawl / Walk / Run / Fly maturity matrix. Each cell shows features for a given application at a given maturity stage, with adoption progress bars. Users can hover to edit adoption values or hide features, and can upload a spreadsheet to replace all data.
+A React single-page app titled **"ServiceNow IRM Product Capabilities"** that visualises a GRC adoption & maturity matrix across five stages: **Foundation → Crawl → Walk → Run → Fly**. Each cell shows feature cards for a given application at a given stage, with adoption progress bars. Users can hover to edit adoption values or hide features, and can upload a spreadsheet to replace all data.
 
 ## GitHub
 
@@ -45,11 +45,20 @@ Users upload `.xlsx`, `.xls`, or `.csv`. The first sheet is used. Required colum
 |---|---|
 | Application | Any string — rows with the same value are grouped into one table row |
 | Feature | Any string |
-| Stage | Exactly one of: `Crawl`, `Walk`, `Run`, `Fly` |
+| Stage | Exactly one of: `Foundation`, `Crawl`, `Walk`, `Run`, `Fly` |
 | Adoption | Integer 0–100 |
 | Active | `yes` / `no` / `true` / `false` / `1` / `0` — defaults to `yes` if omitted |
 
 Download the template via the **Template** button in the app (calls `downloadTemplate()` in `App.jsx`).
+
+## UI features
+
+- **Stage columns** can be individually hidden/shown via the eye icon in the "Avg. Adoption by Stage" panel below the matrix
+- **Feature cards** have a colored left-border accent matching their stage and open an edit modal on hover (gear icon) to adjust adoption % or hide the feature
+- **Row colors**: each application row has a distinct pastel background (cycles through slate, emerald, blue, amber, purple, rose)
+- **App column** shrinks to fit content; stage columns share remaining width equally
+- **Template & Upload buttons** are at the bottom of the page
+- **Legend** (top-right): 80–100% Mature · 50–79% Well Underway · 1–49% Enabled/Early Adoption · 0%
 
 ## Data structure (in-memory)
 
